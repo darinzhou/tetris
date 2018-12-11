@@ -1,10 +1,6 @@
-package com.easysoftware.tetris.data.model;
-
-import android.graphics.Color;
+package com.easysoftware.tetris.model;
 
 import java.util.Random;
-
-import static com.easysoftware.tetris.ui.TetrisPresenter.COL_COUNT;
 
 public class Tetrominoe {
     public static final int SHAPE_COUNT = 7;
@@ -200,26 +196,6 @@ public class Tetrominoe {
         }
     }
 
-    public static int getColor(int colorIndex) {
-        switch (colorIndex) {
-            case 0:
-                return Color.GRAY;
-            case 1:
-                return Color.GREEN;
-            case 2:
-                return Color.CYAN;
-            case 3:
-                return Color.MAGENTA;
-            case 4:
-                return Color.BLUE;
-            case 5:
-                return Color.YELLOW;
-            case 6:
-            default:
-                return Color.RED;
-        }
-    }
-
     private static int getEmptyColOnLeft(int[][] image) {
         int rowCount = image.length;
         int colCount = image[0].length;
@@ -269,22 +245,22 @@ public class Tetrominoe {
     private int mShape;
     private int mTopLeftRow;
     private int mRotation;
-    private int mColorIndex;
+    private int mColorId;
     private int mTopLeftCol;
     private boolean mIsLanded;
 
-    public Tetrominoe() {
+    public Tetrominoe(int fieldColCount) {
         Random rnd = new Random();
 
         mShape = rnd.nextInt(SHAPE_COUNT);
-        mColorIndex = rnd.nextInt(COLOR_COUNT) + 1;
+        mColorId = rnd.nextInt(COLOR_COUNT) + 1;
         mRotation = rnd.nextInt(ROTATION_COUNT);
 
         int[][] image = getImage(mShape, mRotation);
         int rowCount = image.length;
         int colCount = image[0].length;
         int min = getEmptyColOnLeft(image);
-        int max = COL_COUNT - colCount + getEmptyColOnRight(image) + 1;
+        int max = fieldColCount - colCount + getEmptyColOnRight(image) + 1;
 
         mTopLeftRow = -rowCount;
         mTopLeftCol = rnd.nextInt(max-min) + min;
@@ -298,7 +274,7 @@ public class Tetrominoe {
 
     public void copy(Tetrominoe other) {
         mShape = other.mShape;
-        mColorIndex = other.mColorIndex;
+        mColorId = other.mColorId;
         mRotation = other.mRotation;;
         mTopLeftCol = other.mTopLeftCol;
         mTopLeftRow = other.mTopLeftRow;
@@ -321,12 +297,8 @@ public class Tetrominoe {
         return getImage(mShape, mRotation);
     }
 
-    public int getColorIndex() {
-        return mColorIndex;
-    }
-
-    public int getColor() {
-        return getColor(mColorIndex);
+    public int getColorId() {
+        return mColorId;
     }
 
     public int getTopLeftRow() {

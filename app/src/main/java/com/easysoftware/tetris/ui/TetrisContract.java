@@ -1,23 +1,25 @@
 package com.easysoftware.tetris.ui;
 
-import android.graphics.Color;
-
 import com.easysoftware.tetris.base.MvpContract;
-import com.easysoftware.tetris.data.model.Tetrominoe;
-
-import java.util.List;
+import com.easysoftware.tetris.model.Tetrominoe;
 
 public interface TetrisContract {
     interface View extends MvpContract.MvpView {
-        void refresh();
+        void refresh(int clearedRowCount, long totalScore);
     }
 
     interface Presenter extends MvpContract.MvpPresenter<View> {
+
         int getRowCount();
         int getColCount();
-        int getColor(int row, int col);
+        int getColorIdAt(int row, int col);
+
         Tetrominoe getCurrentTetrominoe();
         Tetrominoe getNextTetrominoe();
+
+        void pause();
+        void resume();
+
         void onLeftClick();
         void onRightClick();
         void onFallToLandClick();

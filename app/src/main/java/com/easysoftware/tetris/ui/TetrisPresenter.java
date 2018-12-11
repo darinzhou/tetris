@@ -1,84 +1,138 @@
 package com.easysoftware.tetris.ui;
 
-import com.easysoftware.tetris.data.model.Action;
-import com.easysoftware.tetris.data.model.Tetrominoe;
+import com.easysoftware.tetris.model.Action;
+import com.easysoftware.tetris.model.Tetrominoe;
 
-import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 import javax.inject.Inject;
 
-public class TetrisPresenter implements TetrisContract.Presenter {
+public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
 
     public static final int ROW_COUNT = 16;
     public static final int COL_COUNT = 10;
 
-    protected TetrisContract.View mView;
+    protected int[][] mField;
+    protected boolean mPlaying;
 
-    protected int[][] mField = new int[][] {
-            {0,0,0,0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0,0,0,0},
-            {0,0,0,0,0,0,0,0,0,0}
-    };
+    protected long mScore;
 
     protected Tetrominoe mCurrentTetrominoe;
     protected Tetrominoe mNextTetrominoe;
 
     protected BlockingQueue<Action> mActionQueue;
+    protected Thread mActionsThread;
+
+    protected Timer mTimerToFallCurrentTetrominoe;
+    protected int mMillisecondsOnFallingOneRow = 1000;
+
+    protected TetrisContract.View mView;
 
     @Inject
     public TetrisPresenter() {
-        mActionQueue = new ArrayBlockingQueue<Action>(2);
+        mField = new int[ROW_COUNT][COL_COUNT];
+        for (int i=0; i<ROW_COUNT; ++i) {
+            mField[i] = new int[COL_COUNT];
+        }
 
+        mActionQueue = new ArrayBlockingQueue<>(2);
     }
 
     @Override
-    public void start(TetrisContract.View view) {
-        mView = view;
-
-        Random rnd = new Random();
-        for (int i=0; i<100; ++i) {
-            mNextTetrominoe = new Tetrominoe();
-            mCurrentTetrominoe = new Tetrominoe(mNextTetrominoe);
-
-            for (int j=0; j<=ROW_COUNT; ++j) {
-                int actionType = rnd.nextInt(4);
-                Action action = new Action(actionType, mField);
-                if (mCurrentTetrominoe.applyAction(action)) {
-                    mView.refresh();
-                }
-                if (mCurrentTetrominoe.isLanded()) {
+    public void run() {
+        while (mPlaying) {
+            while (!mActionQueue.isEmpty()) {
+                // check if game is stopped
+                if (!mPlaying) {
                     break;
                 }
-
-                action = new Action(Action.ACTION_FALL_ONE_ROW, mField);
-                if (mCurrentTetrominoe.applyAction(action)) {
-                    mView.refresh();
+                // wait for current tetrominoe is ready
+                if (mCurrentTetrominoe == null) {
+                    continue;
                 }
-                if (mCurrentTetrominoe.isLanded()) {
-                    break;
+
+                try {
+                    Action action = mActionQueue.take();
+
+                    if (mCurrentTetrominoe.applyAction(action)) {
+
+                        // accumulate score from action
+                        mScore += action.getScore();
+
+                        // check if game is stopped before refresh
+                        if (!mPlaying) {
+                            break;
+                        }
+
+                        if (mNextTetrominoe == null && mCurrentTetrominoe.getTopLeftRow() == ROW_COUNT/2) {
+                            mNextTetrominoe = new Tetrominoe(COL_COUNT);
+                        }
+
+                        mView.refresh(action.getClearedRowCount(), mScore);
+                    }
+                    if (mCurrentTetrominoe.isLanded()) {
+                        generateNewTetrominoe();
+                    }
+
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         }
     }
 
+    private void generateNewTetrominoe() {
+        stopFalling();
+        if (mNextTetrominoe == null) {
+            mNextTetrominoe = new Tetrominoe(COL_COUNT);
+        }
+        mCurrentTetrominoe = new Tetrominoe(mNextTetrominoe);
+        mNextTetrominoe = null;
+        startFalling();
+    }
+
+    private void startFalling(){
+        TimerTask timerTaskToFallCurrentTetrominoe = new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    mActionQueue.put(new Action(Action.ACTION_FALL_ONE_ROW, mField));
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        mTimerToFallCurrentTetrominoe = new Timer();
+        mTimerToFallCurrentTetrominoe.scheduleAtFixedRate(timerTaskToFallCurrentTetrominoe, 0, mMillisecondsOnFallingOneRow);
+    }
+
+    private void stopFalling(){
+        if (mTimerToFallCurrentTetrominoe != null) {
+            mTimerToFallCurrentTetrominoe.cancel();
+        }
+    }
+
+    private void startGame() {
+        mScore = 0;
+        mPlaying = true;
+        mActionsThread = new Thread(this);
+        mActionsThread.start();
+        generateNewTetrominoe();
+    }
+
+    @Override
+    public void start(TetrisContract.View view) {
+        mView = view;
+        startGame();
+    }
+
     @Override
     public void stop() {
-
+        startFalling();
+        mPlaying = false;
     }
 
     @Override
@@ -92,7 +146,7 @@ public class TetrisPresenter implements TetrisContract.Presenter {
     }
 
     @Override
-    public int getColor(int row, int col) {
+    public int getColorIdAt(int row, int col) {
         return mField[row][col];
     }
 
@@ -104,6 +158,21 @@ public class TetrisPresenter implements TetrisContract.Presenter {
     @Override
     public Tetrominoe getNextTetrominoe() {
         return mNextTetrominoe;
+    }
+
+    @Override
+    public void pause() {
+        mPlaying = false;
+        try {
+            mActionsThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void resume() {
+        startGame();
     }
 
     @Override
@@ -150,6 +219,5 @@ public class TetrisPresenter implements TetrisContract.Presenter {
             e.printStackTrace();
         }
     }
-
 
 }

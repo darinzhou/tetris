@@ -8,6 +8,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.view.Display;
+import android.view.View;
+import android.widget.TextView;
 
 import com.easysoftware.tetris.R;
 import com.easysoftware.tetris.app.TetrisApp;
@@ -22,6 +24,8 @@ public class MainActivity extends BaseActivity {
     TetrisPresenter mTetrisPresenter;
 
     private TetrisView mTetrisView;
+    private TextView mTvClearedRowCount;
+    private TextView mTvTotalScore;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,15 +35,44 @@ public class MainActivity extends BaseActivity {
         // DI injection
         ((TetrisApp) getApplication()).createActivityComponent().inject(this);
 
-        // get screen size
-        //Getting display object
-        Display display = getWindowManager().getDefaultDisplay();
-        //Getting the screen resolution into point object
-        Point size = new Point();
-        display.getSize(size);
-
         // set game view
-        mTetrisView = findViewById(R.id.tetrisView);//new TetrisView(this, size.x, size.y, mTetrisPresenter);
+        mTetrisView = findViewById(R.id.tetrisView);
+
+        // init control buttons
+        findViewById(R.id.tvLeft).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mTetrisPresenter.onLeftClick();
+            }
+        });
+        findViewById(R.id.tvRight).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mTetrisPresenter.onRightClick();
+            }
+        });
+        findViewById(R.id.tvRotateLeft).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mTetrisPresenter.onRotateAnticlockwiseClick();
+            }
+        });
+        findViewById(R.id.tvRotateRight).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mTetrisPresenter.onRotateClockwiseClick();
+            }
+        });
+        findViewById(R.id.tvDown).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mTetrisPresenter.onFallToLandClick();
+            }
+        });
+
+        // score views
+        mTvTotalScore = findViewById(R.id.tvTotalScore);
+        mTvClearedRowCount = findViewById(R.id.tvClearedRowCount);
 
         // set level and start game
         setLevel();
@@ -54,7 +87,6 @@ public class MainActivity extends BaseActivity {
                     public void onChoose(int which) {
                         // presenter, was injected
                         mTetrisView.init(mTetrisPresenter);
-//                        mTetrisPresenter.newTetrominoe();
                     }
 
                     @Override
@@ -65,6 +97,26 @@ public class MainActivity extends BaseActivity {
         dlg.setCancelable(false);
         dlg.show(getSupportFragmentManager(), "level_dlg");
 
+    }
+
+    public void displayScore(final int clearedRowCount, final long totalScore) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                String clearedRowCountString = "" + clearedRowCount;
+                String totalScoreString = "" + totalScore;
+                if (clearedRowCount > 0) {
+                    mTvClearedRowCount.setText(clearedRowCountString);
+                }
+                mTvTotalScore.setText(totalScoreString);
+            }
+        });
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mTetrisPresenter.pause();
     }
 
     @Override

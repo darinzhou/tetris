@@ -9,7 +9,7 @@ import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
-import com.easysoftware.tetris.data.model.Tetrominoe;
+import com.easysoftware.tetris.model.Tetrominoe;
 import com.easysoftware.tetris.ui.util.Utils;
 
 public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, TetrisContract.View {
@@ -23,8 +23,9 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
     private int mBlockWidth;
     private int mBlockInterval;
 
-    private Rect mPreviewRect;
+    private Rect mRedrawRect;
     private Rect mFieldRect;
+    private Rect mPreviewRect;
 
     private Paint mPaint;
     private SurfaceHolder mSurfaceHolder;
@@ -89,9 +90,45 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
     }
 
     @Override
-    public void refresh() {
-        drawPreview();
-        drawField();
+    public void refresh(int clearedRowCount, long totalScore) {
+        Canvas canvas = mSurfaceHolder.lockCanvas(mRedrawRect);
+
+        // draw preview area
+        mPaint.setColor(Color.BLACK);
+        mPaint.setStyle(Paint.Style.FILL);
+        canvas.drawRect(mPreviewRect, mPaint);
+        Tetrominoe next = mPresenter.getNextTetrominoe();
+        if (next != null) {
+            drawTetrominoe(canvas, next, true);
+        }
+
+        // draw field area
+        for (int r = 0; r<mPresenter.getRowCount(); ++r) {
+            for (int c = 0; c < mPresenter.getColCount(); ++c) {
+                int color = mPresenter.getColorIdAt(r, c);
+                drawBlock(canvas, r, c, colorId2Color(color), false);
+            }
+        }
+
+        // draw current tetrominoe
+        Tetrominoe current = mPresenter.getCurrentTetrominoe();
+        if (current != null && !current.isLanded()) {
+            drawTetrominoe(canvas, current, false);
+        }
+
+        // draw wall at last step
+        mPaint.setColor(Color.WHITE);
+        mPaint.setStrokeWidth(mBlockInterval);
+        mPaint.setStyle(Paint.Style.STROKE);
+        canvas.drawRect(mFieldRect, mPaint);
+
+        mSurfaceHolder.unlockCanvasAndPost(canvas);
+
+        // display score
+        MainActivity parent = (MainActivity)mContext;
+        if (parent != null) {
+            parent.displayScore(clearedRowCount, totalScore);
+        }
     }
 
     private void init() {
@@ -111,7 +148,9 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         int y1 = mBlockWidth * 4 + mBlockInterval * 5;
         int y2 = y1 + fieldHeight;
         mFieldRect = new Rect(x1, y1, x2, y2);
-        mPreviewRect = new Rect(x1, 0, x2, y1-1);
+        mRedrawRect = new Rect(x1, 0, x2, y2);
+        mPreviewRect = new Rect(x1, 0, x2, y2);
+
 
         mPaint = new Paint();
 
@@ -123,42 +162,16 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         mPresenter.start(this);
     }
 
-    private void drawField() {
-        Canvas canvas = mSurfaceHolder.lockCanvas(mFieldRect);
-
-        // draw empty area
-        for (int r = 0; r<mPresenter.getRowCount(); ++r) {
-            for (int c = 0; c < mPresenter.getColCount(); ++c) {
-                int color = mPresenter.getColor(r, c);
-                drawBlock(canvas, r, c, Tetrominoe.getColor(color), false);
+    private void drawTetrominoe(Canvas canvas, Tetrominoe tetrominoe, boolean preview) {
+        int[][] image = tetrominoe.getImage();
+        int color = colorId2Color(tetrominoe.getColorId());
+        for (int r = 0; r < image.length; ++r) {
+            for (int c = 0; c < image[r].length; ++c) {
+                if (image[r][c] != 0) {
+                    drawBlock(canvas, r+tetrominoe.getTopLeftRow(), c+tetrominoe.getTopLeftCol(), color, preview);
+                }
             }
         }
-
-        // draw current tetrominoe
-        Tetrominoe current = mPresenter.getCurrentTetrominoe();
-        if (current != null && !current.isLanded()) {
-            drawTetrominoe(canvas, current, false);
-        }
-
-        // draw wall at last step
-        mPaint.setColor(Color.WHITE);
-        mPaint.setStrokeWidth(mBlockInterval);
-        mPaint.setStyle(Paint.Style.STROKE);
-        canvas.drawRect(mFieldRect, mPaint);
-
-        mSurfaceHolder.unlockCanvasAndPost(canvas);
-    }
-
-    private void drawPreview() {
-        Canvas canvas = mSurfaceHolder.lockCanvas(mPreviewRect);
-        canvas.drawColor(Color.BLACK);
-
-        Tetrominoe next = mPresenter.getNextTetrominoe();
-        if (next != null) {
-            drawTetrominoe(canvas, next, true);
-        }
-
-        mSurfaceHolder.unlockCanvasAndPost(canvas);
     }
 
     private void drawBlock(Canvas canvas, int row, int col, int colorFace, boolean preview) {
@@ -179,15 +192,23 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         return mFieldRect.top + (row + 2) * mBlockInterval + row * mBlockWidth;
     }
 
-    private void drawTetrominoe(Canvas canvas, Tetrominoe tetrominoe, boolean preview) {
-        int[][] image = tetrominoe.getImage();
-        int color = tetrominoe.getColor();
-        for (int r = 0; r < image.length; ++r) {
-            for (int c = 0; c < image[r].length; ++c) {
-                if (image[r][c] != 0) {
-                    drawBlock(canvas, r+tetrominoe.getTopLeftRow(), c+tetrominoe.getTopLeftCol(), color, preview);
-                }
-            }
+    private int colorId2Color(int colorIndex) {
+        switch (colorIndex) {
+            case 0:
+                return Color.GRAY;
+            case 1:
+                return Color.GREEN;
+            case 2:
+                return Color.CYAN;
+            case 3:
+                return Color.MAGENTA;
+            case 4:
+                return Color.BLUE;
+            case 5:
+                return Color.YELLOW;
+            case 6:
+            default:
+                return Color.RED;
         }
     }
 
