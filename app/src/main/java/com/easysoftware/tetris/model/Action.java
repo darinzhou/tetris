@@ -39,10 +39,6 @@ public class Action {
         return mType != -1;
     }
 
-    private boolean isHorizontalMove() {
-        return mType == ACTION_MOVE_LEFT || mType == ACTION_MOVE_RIGHT;
-    }
-
     public int[][] getField() {
         return mField;
     }
@@ -55,43 +51,20 @@ public class Action {
             return false;
         }
 
+        if (tetrominoe.isLanded()) {
+            return true;
+        }
+
         Tetrominoe temp = new Tetrominoe(tetrominoe);
-        boolean isLanded = false;
         boolean actionSucceed = true;
 
         if (mType == ACTION_FALL_UNTIL_LANDED) {
-            // fall til landed
-            while (!isLanded) {
-                // fall one row
-                temp.fallOne();
-                int[][] image = temp.getImage();
 
-                // check if landed
-                for (int r = 0; r < image.length; ++r) {
-                    for (int c = 0; c < image[r].length; ++c) {
-                        if (image[r][c] != 0) {
-                            int row = r + temp.getTopLeftRow();
-                            int col = c + temp.getTopLeftCol();
+            fallTilLanded(temp);
 
-                            // check if on field bottom
-                            if (row == mFieldRowCount - 1) {
-                                isLanded = true;
-                                break;
-                            }
+        } else if (mType == ACTION_FALL_ONE_ROW) {
 
-                            // check if landed on non empty block
-                            if (row + 1 >= 0 && mField[row + 1][col] != 0) {
-                                isLanded = true;
-                                break;
-                            }
-                        }
-
-                        if (isLanded) {
-                            break;
-                        }
-                    }
-                }
-            }
+            actionSucceed = checkFallOne(temp);
 
         } else {
 
@@ -108,38 +81,42 @@ public class Action {
                 case ACTION_ROTATE_ANTICLOCKWISE:
                     temp.rotateAntiClockwise();
                     break;
-                case ACTION_FALL_ONE_ROW:
-                    temp.fallOne();
-                    break;
                 default:
                     return false;
             }
 
+            actionSucceed = checkNonfallAction(temp);
+        }
+
+        // if succeed, apply the action
+        if (actionSucceed) {
+            // apply
+            tetrominoe.copy(temp);
+
+            // if landed, updated the field
+            if (tetrominoe.isLanded()) {
+                landTetrominoe(tetrominoe);
+                mScore = clearFilledRowsAndCalculateScore();
+            }
+        }
+
+        return actionSucceed;
+    }
+
+    private void fallTilLanded(Tetrominoe temp) {
+        boolean isLanded = false;
+        // fall til landed
+        while (!isLanded) {
+            // fall one row
+            temp.fallOne();
             int[][] image = temp.getImage();
-            for (int r = 0; r < image.length; ++r) {
+
+            // check if landed
+            for (int r = image.length - 1; r >= 0; --r) {
                 for (int c = 0; c < image[r].length; ++c) {
                     if (image[r][c] != 0) {
                         int row = r + temp.getTopLeftRow();
                         int col = c + temp.getTopLeftCol();
-                        Log.d(TAG, "==> (" + row + ", " + col + ")");
-
-                        // check if reached side wall
-                        if (col < 0 || col >= mFieldColCount) {
-                            actionSucceed = false;
-                            break;
-                        }
-
-                        // check if below field bottom
-                        if (row >= mFieldRowCount) {
-                            actionSucceed = false;
-                            break;
-                        }
-
-                        // check if reached landed blocks
-                        if (row >= 0 && mField[row][col] != 0) {
-                            actionSucceed = false;
-                            break;
-                        }
 
                         // check if on field bottom
                         if (row == mFieldRowCount - 1) {
@@ -155,23 +132,101 @@ public class Action {
                     }
                 }
 
-                if (!actionSucceed || isLanded) {
+                if (isLanded) {
                     break;
                 }
             }
         }
 
-        // if succeed, apply the action
-        if (actionSucceed) {
-            // apply
+        if (isLanded) {
             temp.setLanded(isLanded);
-            tetrominoe.copy(temp);
+        }
+    }
 
-            // if landed, updated the field
-            if (isLanded) {
-                landTetrominoe(tetrominoe);
-                clearFilledRows();
-                mScore = mClearedRowCount * SCORE_FOR_CLEAR_ONE_ROW;
+    private boolean checkFallOne(Tetrominoe temp) {
+        temp.fallOne();
+
+        boolean actionSucceed = true;
+        boolean isLanded = false;
+        int[][] image = temp.getImage();
+
+        for (int r = image.length - 1; r >= 0; --r) {
+            for (int c = 0; c < image[r].length; ++c) {
+                if (image[r][c] != 0) {
+                    int row = r + temp.getTopLeftRow();
+                    int col = c + temp.getTopLeftCol();
+
+                    // check if below field bottom
+                    if (row >= mFieldRowCount) {
+                        actionSucceed = false;
+                        break;
+                    }
+
+                    // check if reached landed blocks
+                    if (row >= 0 && mField[row][col] != 0) {
+                        actionSucceed = false;
+                        break;
+                    }
+
+                    // check if on field bottom
+                    if (row == mFieldRowCount - 1) {
+                        isLanded = true;
+                        break;
+                    }
+
+                    // check if landed on non empty block
+                    if (row + 1 >= 0 && mField[row + 1][col] != 0) {
+                        isLanded = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!actionSucceed || isLanded) {
+                break;
+            }
+        }
+
+        if (isLanded) {
+            temp.setLanded(isLanded);
+        }
+
+        return actionSucceed;
+    }
+
+    private boolean checkNonfallAction(Tetrominoe temp) {
+        boolean actionSucceed = true;
+        int[][] image = temp.getImage();
+
+        for (int r = 0; r < image.length; ++r) {
+            for (int c = 0; c < image[r].length; ++c) {
+                if (image[r][c] != 0) {
+                    int row = r + temp.getTopLeftRow();
+                    int col = c + temp.getTopLeftCol();
+                    Log.d(TAG, "==> (" + row + ", " + col + ")");
+
+                    // check if reached side wall
+                    if (col < 0 || col >= mFieldColCount) {
+                        actionSucceed = false;
+                        break;
+                    }
+
+                    // check if below field bottom
+                    if (row >= mFieldRowCount) {
+                        actionSucceed = false;
+                        break;
+                    }
+
+                    // check if reached landed blocks
+                    if (row >= 0 && mField[row][col] != 0) {
+                        actionSucceed = false;
+                        break;
+                    }
+                }
+            }
+
+            if (!actionSucceed) {
+                break;
             }
         }
 
@@ -195,28 +250,37 @@ public class Action {
         }
     }
 
-    private void clearFilledRows() {
-        for (int r = mFieldRowCount - 1; r >= 0; r--) {
-            int emptyBlocks = 0;
+    private long clearFilledRowsAndCalculateScore() {
+        boolean allCleared = true;
+        for (int r = 0; r < mFieldRowCount; r++) {
+            boolean filled = true;
             for (int c = 0; c < mFieldColCount; c++) {
                 if (mField[r][c] == 0) {
-                    emptyBlocks++;
+                    allCleared = false;
+                    filled = false;
+                    break;
                 }
             }
 
-            // if emptyBlocks is 0 then current row is filled
-            if (emptyBlocks == 0) {
+            if (filled) {
                 // clear the filled row and update the field
                 clearFilledRow(r);
                 mClearedRowCount++;
             }
+        }
 
-            // if emptyBlocks is mFieldColCount then stop check
-            // as there should be no empty row between remain blocks
-            if (emptyBlocks == mFieldColCount) {
-                break;
+        long score = 0;
+        if (mClearedRowCount > 0) {
+            for (int i = 1; i <= mClearedRowCount; ++i) {
+                score += i * SCORE_FOR_CLEAR_ONE_ROW;
+            }
+
+            if (allCleared) {
+                score += 1000;
             }
         }
+
+        return score;
     }
 
     private void clearFilledRow(int row) {
@@ -244,6 +308,6 @@ public class Action {
 
     // test
     public void test_clearFilledRows() {
-        clearFilledRows();
+        clearFilledRowsAndCalculateScore();
     }
 }

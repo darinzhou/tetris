@@ -43,10 +43,12 @@ public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
 
     @Inject
     public TetrisPresenter() {
+        mTopUnemptyRow = ROW_COUNT;
     }
 
     private void init(int level) {
         mScore = 0;
+        mLastClearedRowCount = 0;
 
         mLevel = level;
         switch (mLevel) {
@@ -99,10 +101,6 @@ public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
             }
         }
         return r;
-    }
-
-    private boolean isGameOver() {
-        return mTopUnemptyRow == 0;
     }
 
     private boolean takeAction(Action action) {
@@ -228,6 +226,11 @@ public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
     @Override
     public boolean isStarted() {
         return mStarted;
+    }
+
+    @Override
+    public boolean isGameOver() {
+        return mTopUnemptyRow == 0;
     }
 
     @Override

@@ -126,7 +126,7 @@ public class MainActivity extends BaseActivity {
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.new_game:
-                mTetrisView.newGame();
+                mTetrisView.newGame(true);
                 return true;
             case R.id.pause:
                 mTetrisPresenter.control();

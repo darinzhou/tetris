@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
@@ -166,7 +167,7 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 dialog.dismiss();
-                                newGame();
+                                newGame(true);
                             }
                         });
 
@@ -207,30 +208,33 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
 
     }
 
-    public void newGame() {
+    public void newGame(boolean alwayShow) {
         mPresenter.stop();
-        Resources res = getResources();
-        SingleChoiceDlgFragment dlg = SingleChoiceDlgFragment.newInstance(
-                res.getString(R.string.level_title), res.getStringArray(R.array.levels_array),
-                new SingleChoiceDlgFragment.OnChooseListener() {
-                    @Override
-                    public void onChoose(int which) {
-                        // set black as background
-                        Canvas canvas = mSurfaceHolder.lockCanvas();
-                        canvas.drawColor(Color.BLACK);
-                        mSurfaceHolder.unlockCanvasAndPost(canvas);
+        Fragment fragment = mParentActivity.getSupportFragmentManager().findFragmentByTag("level_dlg");
+        if (alwayShow || (fragment == null && !mPresenter.isGameOver())) {
+            Resources res = getResources();
+            SingleChoiceDlgFragment dlg = SingleChoiceDlgFragment.newInstance(
+                    res.getString(R.string.level_title), res.getStringArray(R.array.levels_array),
+                    new SingleChoiceDlgFragment.OnChooseListener() {
+                        @Override
+                        public void onChoose(int which) {
+                            // set black as background
+                            Canvas canvas = mSurfaceHolder.lockCanvas();
+                            canvas.drawColor(Color.BLACK);
+                            mSurfaceHolder.unlockCanvasAndPost(canvas);
 
-                        // start game
-                        mPresenter.newGame(which);
-                    }
+                            // start game
+                            mPresenter.newGame(which);
+                        }
 
-                    @Override
-                    public void onCancel() {
-                        mParentActivity.finish();
-                    }
-                });
-        dlg.setCancelable(false);
-        dlg.show(mParentActivity.getSupportFragmentManager(), "level_dlg");
+                        @Override
+                        public void onCancel() {
+                            mParentActivity.finish();
+                        }
+                    });
+            dlg.setCancelable(false);
+            dlg.show(mParentActivity.getSupportFragmentManager(), "level_dlg");
+        }
     }
 
     private void initView() {
@@ -275,7 +279,7 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         if (mPresenter.isStarted()) {
             mPresenter.recoverState();
         } else {
-            newGame();
+            newGame(false);
         }
     }
 

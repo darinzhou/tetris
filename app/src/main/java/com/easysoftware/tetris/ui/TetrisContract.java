@@ -23,6 +23,7 @@ public interface TetrisContract {
 
         boolean isPlaying();
         boolean isStarted();
+        boolean isGameOver();
 
         void newGame(int level);
         void control();
