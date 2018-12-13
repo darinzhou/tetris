@@ -1,20 +1,16 @@
 package com.easysoftware.tetris.ui;
 
-import android.app.Activity;
 import android.content.res.Resources;
-import android.graphics.Point;
-import android.support.v4.app.NavUtils;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.DisplayMetrics;
-import android.view.Display;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
 import com.easysoftware.tetris.R;
 import com.easysoftware.tetris.app.TetrisApp;
 import com.easysoftware.tetris.base.BaseActivity;
-import com.easysoftware.tetris.ui.util.SingleChoiceDlgFragment;
 
 import javax.inject.Inject;
 
@@ -34,9 +30,6 @@ public class MainActivity extends BaseActivity {
 
         // DI injection
         ((TetrisApp) getApplication()).createActivityComponent().inject(this);
-
-        // set game view
-        mTetrisView = findViewById(R.id.tetrisView);
 
         // init control buttons
         findViewById(R.id.tvLeft).setOnClickListener(new View.OnClickListener() {
@@ -74,29 +67,10 @@ public class MainActivity extends BaseActivity {
         mTvTotalScore = findViewById(R.id.tvTotalScore);
         mTvClearedRowCount = findViewById(R.id.tvClearedRowCount);
 
-        // set level and start game
-        setLevel();
-    }
-
-    private void setLevel() {
-        Resources res = getResources();
-        SingleChoiceDlgFragment dlg = SingleChoiceDlgFragment.newInstance(
-                res.getString(R.string.level_title), res.getStringArray(R.array.levels_array),
-                new SingleChoiceDlgFragment.OnChooseListener() {
-                    @Override
-                    public void onChoose(int which) {
-                        // presenter, was injected
-                        mTetrisView.init(mTetrisPresenter);
-                    }
-
-                    @Override
-                    public void onCancel() {
-                        MainActivity.this.finish();
-                    }
-                });
-        dlg.setCancelable(false);
-        dlg.show(getSupportFragmentManager(), "level_dlg");
-
+        // init game view
+        mTetrisView = findViewById(R.id.tetrisView);
+        // set the presenter, which was injected
+        mTetrisView.initialize(mTetrisPresenter);
     }
 
     public void displayScore(final int clearedRowCount, final long totalScore) {
@@ -116,7 +90,9 @@ public class MainActivity extends BaseActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        mTetrisPresenter.pause();
+        if (mTetrisPresenter != null) {
+            mTetrisPresenter.pause();
+        }
     }
 
     @Override
@@ -126,6 +102,38 @@ public class MainActivity extends BaseActivity {
             mTetrisPresenter.stop();
         }
         ((TetrisApp) getApplication()).releaseActivityComponent();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.game_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem pause = menu.findItem(R.id.pause);
+        Resources res = getResources();
+        String text = mTetrisPresenter.isPlaying() ?
+                res.getString(R.string.pause) : res.getString(R.string.resume);
+        pause.setTitle(text);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.new_game:
+                mTetrisView.newGame();
+                return true;
+            case R.id.pause:
+                mTetrisPresenter.control();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
 }

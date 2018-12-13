@@ -10,7 +10,7 @@ public interface MvpContract {
     }
 
     interface MvpPresenter<V extends MvpView> {
-        void start(V view);
+        void attachView(V view);
 
         void stop();
     }

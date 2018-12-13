@@ -3,6 +3,10 @@
 
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
+    <string name="new_game">New Game</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="exit">Exit</string>
 
     <string name="level_title">Select Game Level</string>
     <string-array name="levels_array">
@@ -16,5 +20,10 @@
     <string name="down">\u2193</string>
     <string name="left">\u2190</string>
     <string name="right">\u2192</string>
+
+    <string name="game_over_title">Game Over</string>
+    <string name="game_over_message">Your score: %1$d</string>
+    <string name="game_over_created_record">You just create a new record!</string>
+
 
 </resources>

@@ -5,7 +5,12 @@ import com.easysoftware.tetris.model.Tetrominoe;
 
 public interface TetrisContract {
     interface View extends MvpContract.MvpView {
-        void refresh(int clearedRowCount, long totalScore);
+        void updateMenu();
+        void updateScore(int clearedRowCount, long totalScore);
+        void refresh();
+        void displayGameOverMessage(long score);
+        void drawLevel(int level);
+        void drawLifeLevel(int level);
     }
 
     interface Presenter extends MvpContract.MvpPresenter<View> {
@@ -15,10 +20,15 @@ public interface TetrisContract {
         int getColorIdAt(int row, int col);
 
         Tetrominoe getCurrentTetrominoe();
-        Tetrominoe getNextTetrominoe();
 
+        boolean isPlaying();
+        boolean isStarted();
+
+        void newGame(int level);
+        void control();
         void pause();
         void resume();
+        void recoverState();
 
         void onLeftClick();
         void onRightClick();

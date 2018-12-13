@@ -10,18 +10,6 @@ public class Tetrominoe {
     public static final int[][][] I = {
             {
                     {0, 0, 0, 0},
-                    {1, 1, 1, 1},
-                    {0, 0, 0, 0},
-                    {0, 0, 0, 0},
-            },
-            {
-                    {0, 0, 1, 0},
-                    {0, 0, 1, 0},
-                    {0, 0, 1, 0},
-                    {0, 0, 1, 0},
-            },
-            {
-                    {0, 0, 0, 0},
                     {0, 0, 0, 0},
                     {1, 1, 1, 1},
                     {0, 0, 0, 0},
@@ -31,6 +19,18 @@ public class Tetrominoe {
                     {0, 1, 0, 0},
                     {0, 1, 0, 0},
                     {0, 1, 0, 0},
+            },
+            {
+                    {0, 0, 0, 0},
+                    {1, 1, 1, 1},
+                    {0, 0, 0, 0},
+                    {0, 0, 0, 0},
+            },
+            {
+                    {0, 0, 1, 0},
+                    {0, 0, 1, 0},
+                    {0, 0, 1, 0},
+                    {0, 0, 1, 0},
             }
     };
 
@@ -223,9 +223,9 @@ public class Tetrominoe {
         int colCount = image[0].length;
 
         int emptyColNum = 0;
-        for (int c = colCount-1; c >=0; --c) {
+        for (int c = colCount - 1; c >= 0; --c) {
             boolean empty = true;
-            for (int r = 0; r<rowCount; ++r) {
+            for (int r = 0; r < rowCount; ++r) {
                 if (image[r][c] != 0) {
                     empty = false;
                     break;
@@ -242,6 +242,7 @@ public class Tetrominoe {
     }
 
 
+    private int mFieldColCount;
     private int mShape;
     private int mTopLeftRow;
     private int mRotation;
@@ -250,11 +251,14 @@ public class Tetrominoe {
     private boolean mIsLanded;
 
     public Tetrominoe(int fieldColCount) {
+
+        mFieldColCount = fieldColCount;
+
         Random rnd = new Random();
 
         mShape = rnd.nextInt(SHAPE_COUNT);
         mColorId = rnd.nextInt(COLOR_COUNT) + 1;
-        mRotation = rnd.nextInt(ROTATION_COUNT);
+        mRotation = 0;
 
         int[][] image = getImage(mShape, mRotation);
         int rowCount = image.length;
@@ -263,7 +267,7 @@ public class Tetrominoe {
         int max = fieldColCount - colCount + getEmptyColOnRight(image) + 1;
 
         mTopLeftRow = -rowCount;
-        mTopLeftCol = rnd.nextInt(max-min) + min;
+        mTopLeftCol = rnd.nextInt(max - min) + min;
 
         mIsLanded = false;
     }
@@ -273,15 +277,19 @@ public class Tetrominoe {
     }
 
     public void copy(Tetrominoe other) {
+        mFieldColCount = other.mFieldColCount;
         mShape = other.mShape;
         mColorId = other.mColorId;
-        mRotation = other.mRotation;;
+        mRotation = other.mRotation;
         mTopLeftCol = other.mTopLeftCol;
         mTopLeftRow = other.mTopLeftRow;
         mIsLanded = other.mIsLanded;
     }
 
     public boolean applyAction(Action action) {
+        if (action == null) {
+            return false;
+        }
         return action.applyTo(this);
     }
 
@@ -312,24 +320,56 @@ public class Tetrominoe {
     public void moveLeft() {
         --mTopLeftCol;
     }
+
     public void moveRight() {
         ++mTopLeftCol;
     }
+
     public void rotateClockwise() {
         ++mRotation;
         if (mRotation >= ROTATION_COUNT) {
             mRotation = 0;
         }
+        adjustRotationPosition();
     }
+
     public void rotateAntiClockwise() {
         --mRotation;
         if (mRotation < 0) {
             mRotation = ROTATION_COUNT - 1;
         }
+        adjustRotationPosition();
     }
+
     public void fallOne() {
         mTopLeftRow++;
     }
 
+    private void adjustRotationPosition() {
+        int[][] image = getImage();
+        int minCol = mFieldColCount;
+        int maxCol = -1;
+        for (int r = 0; r < image.length; ++r) {
+            for (int c = 0; c < image[r].length; ++c) {
+                if (image[r][c] != 0) {
+                    int col = c + getTopLeftCol();
+
+                    if (col < minCol) {
+                        minCol = col;
+                    }
+                    if (col > maxCol) {
+                        maxCol = col;
+                    }
+                }
+            }
+        }
+
+        if (minCol < 0) {
+            mTopLeftCol -= minCol;
+        }
+        if (maxCol >= mFieldColCount) {
+            mTopLeftCol -= maxCol - mFieldColCount + 1;
+        }
+    }
 
 }

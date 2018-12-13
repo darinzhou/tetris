@@ -1,6 +1,10 @@
 package com.easysoftware.tetris.model;
 
+import android.util.Log;
+
 public class Action {
+    public static final String TAG = "Action";
+
     public static final int SCORE_FOR_CLEAR_ONE_ROW = 100;
 
     public static final int ACTION_MOVE_LEFT = 0;
@@ -35,6 +39,10 @@ public class Action {
         return mType != -1;
     }
 
+    private boolean isHorizontalMove() {
+        return mType == ACTION_MOVE_LEFT || mType == ACTION_MOVE_RIGHT;
+    }
+
     public int[][] getField() {
         return mField;
     }
@@ -43,9 +51,11 @@ public class Action {
         if (!isValid()) {
             return false;
         }
+        if (tetrominoe == null) {
+            return false;
+        }
 
         Tetrominoe temp = new Tetrominoe(tetrominoe);
-        int[][] image = temp.getImage();
         boolean isLanded = false;
         boolean actionSucceed = true;
 
@@ -54,6 +64,8 @@ public class Action {
             while (!isLanded) {
                 // fall one row
                 temp.fallOne();
+                int[][] image = temp.getImage();
+
                 // check if landed
                 for (int r = 0; r < image.length; ++r) {
                     for (int c = 0; c < image[r].length; ++c) {
@@ -97,16 +109,19 @@ public class Action {
                     temp.rotateAntiClockwise();
                     break;
                 case ACTION_FALL_ONE_ROW:
-                default:
                     temp.fallOne();
                     break;
+                default:
+                    return false;
             }
 
+            int[][] image = temp.getImage();
             for (int r = 0; r < image.length; ++r) {
                 for (int c = 0; c < image[r].length; ++c) {
                     if (image[r][c] != 0) {
                         int row = r + temp.getTopLeftRow();
                         int col = c + temp.getTopLeftCol();
+                        Log.d(TAG, "==> (" + row + ", " + col + ")");
 
                         // check if reached side wall
                         if (col < 0 || col >= mFieldColCount) {
@@ -114,14 +129,14 @@ public class Action {
                             break;
                         }
 
-                        // check if reached landed blocks
-                        if (row >= 0 && row < mFieldRowCount && mField[row][col] != 0) {
+                        // check if below field bottom
+                        if (row >= mFieldRowCount) {
                             actionSucceed = false;
                             break;
                         }
 
-                        // check if below field
-                        if (row >= mFieldRowCount) {
+                        // check if reached landed blocks
+                        if (row >= 0 && mField[row][col] != 0) {
                             actionSucceed = false;
                             break;
                         }
@@ -137,12 +152,11 @@ public class Action {
                             isLanded = true;
                             break;
                         }
-
                     }
+                }
 
-                    if (!actionSucceed || isLanded) {
-                        break;
-                    }
+                if (!actionSucceed || isLanded) {
+                    break;
                 }
             }
         }
