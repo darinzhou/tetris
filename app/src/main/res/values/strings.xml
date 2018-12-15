@@ -23,7 +23,10 @@
 
     <string name="game_over_title">Game Over</string>
     <string name="game_over_message">Your score: %1$d</string>
-    <string name="game_over_created_record">You just create a new record!</string>
+    <string name="game_over_created_record">You just created a new record!</string>
+    <string name="game_over_leveled_record">Your score leveled the best record!</string>
+    <string name="game_over_second_highest">Your score is the second highest score.</string>
+    <string name="game_over_third_highest">Your score is third highest score.</string>
 
 
 </resources>

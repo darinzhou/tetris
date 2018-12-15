@@ -10,6 +10,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -19,6 +20,12 @@ import com.easysoftware.tetris.R;
 import com.easysoftware.tetris.model.Tetrominoe;
 import com.easysoftware.tetris.ui.util.SingleChoiceDlgFragment;
 import com.easysoftware.tetris.ui.util.Utils;
+
+import io.reactivex.Scheduler;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.internal.observers.DisposableLambdaObserver;
+import io.reactivex.observers.DisposableObserver;
+import io.reactivex.schedulers.Schedulers;
 
 public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, TetrisContract.View {
     public static final int BLOCK_INTERVAL_DP = 1;
@@ -36,7 +43,7 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
     private Rect mFieldRect;
     private Rect mPreviewRect;
     private Rect mLevelRect;
-    private Rect mLifeRect;
+    private Rect mNextRect;
 
     private Paint mPaint;
     private SurfaceHolder mSurfaceHolder;
@@ -153,31 +160,7 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
 
     @Override
     public void displayGameOverMessage(final long score) {
-        post(new Runnable() {
-            @Override
-            public void run() {
-                String title = getResources().getString(R.string.game_over_title);
-                String message = getResources().getString(R.string.game_over_message, score);
-
-                AlertDialog.Builder builder = new AlertDialog.Builder(mParentActivity);
-                builder.setTitle(title)
-                        .setMessage(message)
-                        .setCancelable(false)
-                        .setPositiveButton(R.string.new_game, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                                newGame(true);
-                            }
-                        });
-
-                TextView textView = Utils.createDlgTitle(mParentActivity, title);
-                builder.setCustomTitle(textView);
-
-                AlertDialog dialog = builder.create();
-                dialog.show();
-            }
-        });
+        mParentActivity.displayGameOverMessage(score);
     }
 
     @Override
@@ -204,7 +187,29 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
     }
 
     @Override
-    public void drawLifeLevel(int level) {
+    public void drawNextTetrominoe() {
+        Tetrominoe tetrominoe = mPresenter.getNextTetrominoe();
+        if (tetrominoe == null) {
+            return;
+        }
+
+        int[][] image = tetrominoe.getImage();
+        int rowCount = image.length;
+        int blockWidth = (Math.min(mNextRect.width(), mNextRect.height()) - rowCount + 1)/rowCount;
+        int color = colorId2Color(tetrominoe.getColorId());
+
+        Canvas canvas = mSurfaceHolder.lockCanvas(mNextRect);
+        canvas.drawColor(Color.BLACK);
+
+        for (int r = 0; r < image.length; ++r) {
+            for (int c = 0; c < image[r].length; ++c) {
+                if (image[r][c] != 0) {
+                    drawBlockForNext(canvas, r, c, color, blockWidth);
+                }
+            }
+        }
+
+        mSurfaceHolder.unlockCanvasAndPost(canvas);
 
     }
 
@@ -264,7 +269,7 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         int lx2 = lx1 + lw;
         int ly2 = ly1 + lw;
         mLevelRect = new Rect(lx1,ly1,lx2,ly2);
-        mLifeRect = new Rect(x2 + lx1,ly1,mWidth-lx1,y1-ly1);
+        mNextRect = new Rect(x2 + lx1,ly1,mWidth-lx1,y1-ly1);
 
         // black background
         Canvas canvas = mSurfaceHolder.lockCanvas();
@@ -333,4 +338,39 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         }
     }
 
+    private void drawBlockForNext(Canvas canvas, int row, int col, int colorFace, int blockWidth) {
+        int x = mNextRect.left + (col + 2) * 1 + col * blockWidth;;
+        int y = mNextRect.top + (row + 2) * 1 + row * blockWidth;
+        int stroke = 1;
+
+        mPaint.setColor(colorFace);
+        mPaint.setStyle(Paint.Style.FILL);
+        canvas.drawRect(x + stroke, y + stroke, x + blockWidth - 2*stroke, y + blockWidth - 2*stroke, mPaint);
+    }
+
+    public void showGameOverDlg(final long score, String extraMessage) {
+        String title = getResources().getString(R.string.game_over_title);
+        String message = getResources().getString(R.string.game_over_message, score);
+        if (!TextUtils.isEmpty(extraMessage)) {
+            message += "\r\n\r\n" + extraMessage;
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(mParentActivity);
+        builder.setTitle(title)
+                .setMessage(message)
+                .setCancelable(false)
+                .setPositiveButton(R.string.new_game, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                        newGame(true);
+                    }
+                });
+
+        TextView textView = Utils.createDlgTitle(mParentActivity, title);
+        builder.setCustomTitle(textView);
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
 }

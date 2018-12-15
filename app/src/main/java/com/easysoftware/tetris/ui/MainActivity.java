@@ -1,7 +1,9 @@
 package com.easysoftware.tetris.ui;
 
+import android.content.DialogInterface;
 import android.content.res.Resources;
 import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -11,13 +13,26 @@ import android.widget.TextView;
 import com.easysoftware.tetris.R;
 import com.easysoftware.tetris.app.TetrisApp;
 import com.easysoftware.tetris.base.BaseActivity;
+import com.easysoftware.tetris.data.localstorage.LocalStorage;
+import com.easysoftware.tetris.ui.util.Utils;
 
 import javax.inject.Inject;
 
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.observers.DisposableObserver;
+import io.reactivex.schedulers.Schedulers;
+
 public class MainActivity extends BaseActivity {
+    public static final String SCORE_RECORDS = "score_records";
 
     @Inject
     TetrisPresenter mTetrisPresenter;
+
+    @Inject
+    LocalStorage mLocalStorage;
+
+    private CompositeDisposable mCompositeDisposable;
 
     private TetrisView mTetrisView;
     private TextView mTvClearedRowCount;
@@ -30,6 +45,7 @@ public class MainActivity extends BaseActivity {
 
         // DI injection
         ((TetrisApp) getApplication()).createActivityComponent().inject(this);
+        mCompositeDisposable = new CompositeDisposable();
 
         // init control buttons
         findViewById(R.id.tvLeft).setOnClickListener(new View.OnClickListener() {
@@ -42,12 +58,6 @@ public class MainActivity extends BaseActivity {
             @Override
             public void onClick(View view) {
                 mTetrisPresenter.onRightClick();
-            }
-        });
-        findViewById(R.id.tvRotateLeft).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mTetrisPresenter.onRotateAnticlockwiseClick();
             }
         });
         findViewById(R.id.tvRotateRight).setOnClickListener(new View.OnClickListener() {
@@ -87,6 +97,68 @@ public class MainActivity extends BaseActivity {
         });
     }
 
+    public void displayGameOverMessage(final long score) {
+        mCompositeDisposable.add(
+                mLocalStorage.readObservable(SCORE_RECORDS, null)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableObserver<String>() {
+                            @Override
+                            public void onNext(String s) {
+                                String[] parts = s.split(",");
+                                if (parts.length != 3) {
+                                    String extraMessage = "";
+                                    if (score != 0) {
+                                        extraMessage = getResources().getString(R.string.game_over_created_record);
+                                    }
+                                    mLocalStorage.write(SCORE_RECORDS, score + ",0,0");
+                                    mTetrisView.showGameOverDlg(score, extraMessage);
+                                } else {
+                                    int first = Integer.valueOf(parts[0]);
+                                    int second = Integer.valueOf(parts[1]);
+                                    int third = Integer.valueOf(parts[2]);
+                                    String extraMessage = "";
+
+                                    if (score != 0) {
+                                        if (score > first) {
+                                            extraMessage = getResources().getString(R.string.game_over_created_record);
+                                            mLocalStorage.write(SCORE_RECORDS, score + "," + first + "," + second);
+                                        } else if (score == first) {
+                                            extraMessage = getResources().getString(R.string.game_over_leveled_record);
+                                        } else if (score > second) {
+                                            extraMessage = getResources().getString(R.string.game_over_second_highest);
+                                            mLocalStorage.write(SCORE_RECORDS, first + "," + score + "," + second);
+                                        } else if (score == second) {
+                                            extraMessage = getResources().getString(R.string.game_over_second_highest);
+                                        } else if (score > third) {
+                                            extraMessage = getResources().getString(R.string.game_over_third_highest);
+                                            mLocalStorage.write(SCORE_RECORDS, first + "," + second + "," + score);
+                                        } else if (score == third) {
+                                            extraMessage = getResources().getString(R.string.game_over_third_highest);
+                                        }
+                                    }
+                                    mTetrisView.showGameOverDlg(score, extraMessage);
+                                }
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                String extraMessage = "";
+                                if (score != 0) {
+                                    extraMessage = getResources().getString(R.string.game_over_created_record);
+                                }
+                                mLocalStorage.write(SCORE_RECORDS, score + ",0,0");
+                                mTetrisView.showGameOverDlg(score, extraMessage);
+                            }
+
+                            @Override
+                            public void onComplete() {
+
+                            }
+                        })
+        );
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
@@ -102,6 +174,7 @@ public class MainActivity extends BaseActivity {
             mTetrisPresenter.stop();
         }
         ((TetrisApp) getApplication()).releaseActivityComponent();
+        mCompositeDisposable.dispose();
     }
 
     @Override

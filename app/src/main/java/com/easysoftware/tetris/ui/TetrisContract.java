@@ -10,7 +10,7 @@ public interface TetrisContract {
         void refresh();
         void displayGameOverMessage(long score);
         void drawLevel(int level);
-        void drawLifeLevel(int level);
+        void drawNextTetrominoe();
     }
 
     interface Presenter extends MvpContract.MvpPresenter<View> {
@@ -20,6 +20,7 @@ public interface TetrisContract {
         int getColorIdAt(int row, int col);
 
         Tetrominoe getCurrentTetrominoe();
+        Tetrominoe getNextTetrominoe();
 
         boolean isPlaying();
         boolean isStarted();

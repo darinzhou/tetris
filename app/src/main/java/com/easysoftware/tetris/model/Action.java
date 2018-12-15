@@ -157,26 +157,28 @@ public class Action {
                     int col = c + temp.getTopLeftCol();
 
                     // check if below field bottom
-                    if (row >= mFieldRowCount) {
+                    if (row > mFieldRowCount) {
                         actionSucceed = false;
                         break;
                     }
 
                     // check if reached landed blocks
-                    if (row >= 0 && mField[row][col] != 0) {
+                    if (row - 1 >= 0 && mField[row - 1][col] != 0) {
                         actionSucceed = false;
                         break;
                     }
 
                     // check if on field bottom
-                    if (row == mFieldRowCount - 1) {
+                    if (row == mFieldRowCount) {
                         isLanded = true;
+                        temp.riseOne();
                         break;
                     }
 
                     // check if landed on non empty block
-                    if (row + 1 >= 0 && mField[row + 1][col] != 0) {
+                    if (row >= 0 && mField[row][col] != 0) {
                         isLanded = true;
+                        temp.riseOne();
                         break;
                     }
                 }
@@ -203,7 +205,6 @@ public class Action {
                 if (image[r][c] != 0) {
                     int row = r + temp.getTopLeftRow();
                     int col = c + temp.getTopLeftCol();
-                    Log.d(TAG, "==> (" + row + ", " + col + ")");
 
                     // check if reached side wall
                     if (col < 0 || col >= mFieldColCount) {

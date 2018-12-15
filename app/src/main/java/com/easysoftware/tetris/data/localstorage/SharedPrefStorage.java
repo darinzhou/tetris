@@ -21,6 +21,12 @@ public class SharedPrefStorage implements LocalStorage {
     }
 
     @Override
+    public void write(String key, long value) {
+        mContext.getSharedPreferences(SHAREDPREF_NAME, Context.MODE_PRIVATE)
+                .edit().putLong(key, value).apply();
+    }
+
+    @Override
     public void write(String key, String message) {
         mContext.getSharedPreferences(SHAREDPREF_NAME, Context.MODE_PRIVATE)
                 .edit().putString(key, message).apply();
@@ -37,6 +43,22 @@ public class SharedPrefStorage implements LocalStorage {
         return Observable.fromCallable(new Callable<Integer>() {
             @Override
             public Integer call() throws Exception {
+                return read(key, defaultValue);
+            }
+        });
+    }
+
+    @Override
+    public long read(String key, long defaultValue) {
+        return mContext.getSharedPreferences(SHAREDPREF_NAME, Context.MODE_PRIVATE)
+                .getLong(key, defaultValue);
+    }
+
+    @Override
+    public Observable<Long> readObservable(final String key, final long defaultValue) {
+        return Observable.fromCallable(new Callable<Long>() {
+            @Override
+            public Long call() throws Exception {
                 return read(key, defaultValue);
             }
         });

@@ -108,9 +108,9 @@ public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
             return true;
         }
 
-        if (mNextTetrominoe != null) {
-            mNextTetrominoe = null;
-        }
+//        if (mNextTetrominoe != null) {
+//            mNextTetrominoe = null;
+//        }
 
         // accumulate score from action
         mScore += action.getScore();
@@ -147,6 +147,8 @@ public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
                 mNextTetrominoe = new Tetrominoe(COL_COUNT);
             }
             mCurrentTetrominoe = new Tetrominoe(mNextTetrominoe);
+            mNextTetrominoe = new Tetrominoe(COL_COUNT);
+            mView.drawNextTetrominoe();
         }
         startFalling();
     }
@@ -219,6 +221,11 @@ public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
     }
 
     @Override
+    public Tetrominoe getNextTetrominoe() {
+        return mNextTetrominoe;
+    }
+
+    @Override
     public boolean isPlaying() {
         return mPlaying;
     }
@@ -264,6 +271,7 @@ public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
     public void recoverState() {
         mView.refresh();
         mView.drawLevel(mLevel);
+        mView.drawNextTetrominoe();
         mView.updateScore(mLastClearedRowCount, mScore);
     }
 

@@ -7,5 +7,6 @@
     <color name="colorDlgTitleBackground">#00eeee</color>
     <color name="colorDlgTitleTextColor">#ee0000</color>
 
+    <color name="colorButtonTextColor">#004d0d</color>
 
 </resources>

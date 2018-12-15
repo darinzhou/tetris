@@ -345,6 +345,10 @@ public class Tetrominoe {
         mTopLeftRow++;
     }
 
+    public void riseOne() {
+        mTopLeftRow--;
+    }
+
     private void adjustRotationPosition() {
         int[][] image = getImage();
         int minCol = mFieldColCount;
