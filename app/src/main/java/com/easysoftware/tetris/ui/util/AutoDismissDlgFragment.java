@@ -1,6 +1,7 @@
 package com.easysoftware.tetris.ui.util;
 
 import android.app.Dialog;
+import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
@@ -28,8 +29,7 @@ public class AutoDismissDlgFragment extends DialogFragment {
     }
 
     public static AutoDismissDlgFragment newInstance(String title, String message,
-                                                     int durationInMilliSecond,
-                                                     OnDismissListener listener) {
+                                                     int durationInMilliSecond) {
         Bundle args = new Bundle();
         args.putString(TITLE_KEY, title);
         args.putString(MSG_KEY, message);
@@ -37,12 +37,13 @@ public class AutoDismissDlgFragment extends DialogFragment {
 
         AutoDismissDlgFragment fragment = new AutoDismissDlgFragment();
         fragment.setArguments(args);
-        fragment.setOnDismissListener(listener);
         return fragment;
     }
 
-    public void setOnDismissListener(OnDismissListener listener) {
-        mOnDismissListener = listener;
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        mOnDismissListener = (OnDismissListener)context;
     }
 
     @NonNull

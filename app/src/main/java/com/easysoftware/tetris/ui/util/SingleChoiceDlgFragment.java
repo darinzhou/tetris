@@ -1,6 +1,7 @@
 package com.easysoftware.tetris.ui.util;
 
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -33,20 +34,20 @@ public class SingleChoiceDlgFragment extends DialogFragment {
         // Use `newInstance` instead as shown below
     }
 
-    public static SingleChoiceDlgFragment newInstance(String title, String[] items,
-                                                      OnChooseListener listener) {
+    public static SingleChoiceDlgFragment newInstance(String title, String[] items) {
         Bundle args = new Bundle();
         args.putString(TITLE_KEY, title);
         args.putStringArray(ITEMS_KEY, items);
 
         SingleChoiceDlgFragment fragment = new SingleChoiceDlgFragment();
         fragment.setArguments(args);
-        fragment.setOnChooseListener(listener);
         return fragment;
     }
 
-    public void setOnChooseListener(OnChooseListener listener) {
-        mOnChooseListener = listener;
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        mOnChooseListener = (OnChooseListener)context;
     }
 
     @NonNull

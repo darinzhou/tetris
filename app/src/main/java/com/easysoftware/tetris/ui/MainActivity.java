@@ -1,7 +1,10 @@
 package com.easysoftware.tetris.ui;
 
+import android.content.DialogInterface;
 import android.content.res.Resources;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
 import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -13,6 +16,8 @@ import com.easysoftware.tetris.R;
 import com.easysoftware.tetris.app.TetrisApp;
 import com.easysoftware.tetris.base.BaseActivity;
 import com.easysoftware.tetris.data.localstorage.LocalStorage;
+import com.easysoftware.tetris.ui.util.SingleChoiceDlgFragment;
+import com.easysoftware.tetris.ui.util.Utils;
 
 import javax.inject.Inject;
 
@@ -21,7 +26,7 @@ import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.schedulers.Schedulers;
 
-public class MainActivity extends BaseActivity {
+public class MainActivity extends BaseActivity implements SingleChoiceDlgFragment.OnChooseListener {
     public static final String SCORE_RECORDS_BASIC = "score_records_basic";
     public static final String SCORE_RECORDS_INTERMEDIATE = "score_records_intermediate";
     public static final String SCORE_RECORDS_ADVANCED = "score_records_advanced";
@@ -155,7 +160,6 @@ public class MainActivity extends BaseActivity {
     }
 
     public void displayGameOverMessage(final long score) {
-
         mCompositeDisposable.add(
                 mLocalStorage.readObservable(getRecordKey(), null)
                         .subscribeOn(Schedulers.io())
@@ -164,13 +168,13 @@ public class MainActivity extends BaseActivity {
                             @Override
                             public void onNext(String s) {
                                 String extraMessage = handleRecords(s, score);
-                                mTetrisView.showGameOverDlg(score, extraMessage);
+                                showGameOverDlg(score, extraMessage);
                             }
 
                             @Override
                             public void onError(Throwable e) {
                                 String extraMessage = handleRecords(null, score);
-                                mTetrisView.showGameOverDlg(score, extraMessage);
+                                showGameOverDlg(score, extraMessage);
                             }
 
                             @Override
@@ -219,7 +223,7 @@ public class MainActivity extends BaseActivity {
         // Handle item selection
         switch (item.getItemId()) {
             case R.id.new_game:
-                mTetrisView.newGame(true);
+                showNewGameDlg(true);
                 return true;
             case R.id.pause:
                 mTetrisPresenter.control();
@@ -228,5 +232,55 @@ public class MainActivity extends BaseActivity {
                 return super.onOptionsItemSelected(item);
         }
     }
+
+    @Override
+    public void onChoose(int which) {
+        mTetrisView.drawBackground();
+        mTetrisPresenter.newGame(which);
+    }
+
+    @Override
+    public void onCancel() {
+        finish();
+    }
+
+    public void showNewGameDlg(boolean alwayShow) {
+        mTetrisPresenter.stop();
+        Fragment fragment = getSupportFragmentManager().findFragmentByTag("level_dlg");
+        if (alwayShow || (fragment == null && !mTetrisPresenter.isGameOver())) {
+            Resources res = getResources();
+            SingleChoiceDlgFragment dlg = SingleChoiceDlgFragment.newInstance(
+                    res.getString(R.string.level_title), res.getStringArray(R.array.levels_array));
+            dlg.setCancelable(false);
+            dlg.show(getSupportFragmentManager(), "level_dlg");
+        }
+    }
+
+    public void showGameOverDlg(final long score, String extraMessage) {
+        String title = getResources().getString(R.string.game_over_title);
+        String message = getResources().getString(R.string.game_over_message, score);
+        if (!TextUtils.isEmpty(extraMessage)) {
+            message += "\r\n\r\n" + extraMessage;
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(title)
+                .setMessage(message)
+                .setCancelable(false)
+                .setPositiveButton(R.string.new_game, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                        showNewGameDlg(true);
+                    }
+                });
+
+        TextView textView = Utils.createDlgTitle(this, title);
+        builder.setCustomTitle(textView);
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
 
 }

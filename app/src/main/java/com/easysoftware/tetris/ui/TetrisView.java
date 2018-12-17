@@ -1,31 +1,18 @@
 package com.easysoftware.tetris.ui;
 
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-import android.support.v4.app.Fragment;
-import android.support.v7.app.AlertDialog;
-import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.widget.TextView;
 
 import com.easysoftware.tetris.R;
 import com.easysoftware.tetris.model.Tetrominoe;
-import com.easysoftware.tetris.ui.util.SingleChoiceDlgFragment;
 import com.easysoftware.tetris.ui.util.Utils;
-
-import io.reactivex.Scheduler;
-import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.internal.observers.DisposableLambdaObserver;
-import io.reactivex.observers.DisposableObserver;
-import io.reactivex.schedulers.Schedulers;
 
 public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, TetrisContract.View {
     public static final int BLOCK_INTERVAL_DP = 1;
@@ -213,33 +200,11 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
 
     }
 
-    public void newGame(boolean alwayShow) {
-        mPresenter.stop();
-        Fragment fragment = mParentActivity.getSupportFragmentManager().findFragmentByTag("level_dlg");
-        if (alwayShow || (fragment == null && !mPresenter.isGameOver())) {
-            Resources res = getResources();
-            SingleChoiceDlgFragment dlg = SingleChoiceDlgFragment.newInstance(
-                    res.getString(R.string.level_title), res.getStringArray(R.array.levels_array),
-                    new SingleChoiceDlgFragment.OnChooseListener() {
-                        @Override
-                        public void onChoose(int which) {
-                            // set black as background
-                            Canvas canvas = mSurfaceHolder.lockCanvas();
-                            canvas.drawColor(Color.BLACK);
-                            mSurfaceHolder.unlockCanvasAndPost(canvas);
-
-                            // start game
-                            mPresenter.newGame(which);
-                        }
-
-                        @Override
-                        public void onCancel() {
-                            mParentActivity.finish();
-                        }
-                    });
-            dlg.setCancelable(false);
-            dlg.show(mParentActivity.getSupportFragmentManager(), "level_dlg");
-        }
+    public void drawBackground() {
+        // set black as background
+        Canvas canvas = mSurfaceHolder.lockCanvas();
+        canvas.drawColor(Color.BLACK);
+        mSurfaceHolder.unlockCanvasAndPost(canvas);
     }
 
     private void initView() {
@@ -272,9 +237,7 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         mNextRect = new Rect(x2 + lx1,ly1,mWidth-lx1,y1-ly1);
 
         // black background
-        Canvas canvas = mSurfaceHolder.lockCanvas();
-        canvas.drawColor(Color.BLACK);
-        mSurfaceHolder.unlockCanvasAndPost(canvas);
+        drawBackground();
 
         // start the presenter
         mPresenter.attachView(this);
@@ -284,7 +247,7 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         if (mPresenter.isStarted()) {
             mPresenter.recoverState();
         } else {
-            newGame(false);
+            mParentActivity.showNewGameDlg(false);
         }
     }
 
@@ -348,29 +311,4 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
         canvas.drawRect(x + stroke, y + stroke, x + blockWidth - 2*stroke, y + blockWidth - 2*stroke, mPaint);
     }
 
-    public void showGameOverDlg(final long score, String extraMessage) {
-        String title = getResources().getString(R.string.game_over_title);
-        String message = getResources().getString(R.string.game_over_message, score);
-        if (!TextUtils.isEmpty(extraMessage)) {
-            message += "\r\n\r\n" + extraMessage;
-        }
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(mParentActivity);
-        builder.setTitle(title)
-                .setMessage(message)
-                .setCancelable(false)
-                .setPositiveButton(R.string.new_game, new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
-                        newGame(true);
-                    }
-                });
-
-        TextView textView = Utils.createDlgTitle(mParentActivity, title);
-        builder.setCustomTitle(textView);
-
-        AlertDialog dialog = builder.create();
-        dialog.show();
-    }
 }
