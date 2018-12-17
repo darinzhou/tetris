@@ -108,10 +108,6 @@ public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
             return true;
         }
 
-//        if (mNextTetrominoe != null) {
-//            mNextTetrominoe = null;
-//        }
-
         // accumulate score from action
         mScore += action.getScore();
 
@@ -213,6 +209,11 @@ public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
     @Override
     public int getColorIdAt(int row, int col) {
         return mField[row][col];
+    }
+
+    @Override
+    public int getLevel() {
+        return mLevel;
     }
 
     @Override

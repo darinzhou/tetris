@@ -1,9 +1,8 @@
 package com.easysoftware.tetris.ui;
 
-import android.content.DialogInterface;
 import android.content.res.Resources;
 import android.os.Bundle;
-import android.support.v7.app.AlertDialog;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -14,7 +13,6 @@ import com.easysoftware.tetris.R;
 import com.easysoftware.tetris.app.TetrisApp;
 import com.easysoftware.tetris.base.BaseActivity;
 import com.easysoftware.tetris.data.localstorage.LocalStorage;
-import com.easysoftware.tetris.ui.util.Utils;
 
 import javax.inject.Inject;
 
@@ -24,7 +22,9 @@ import io.reactivex.observers.DisposableObserver;
 import io.reactivex.schedulers.Schedulers;
 
 public class MainActivity extends BaseActivity {
-    public static final String SCORE_RECORDS = "score_records";
+    public static final String SCORE_RECORDS_BASIC = "score_records_basic";
+    public static final String SCORE_RECORDS_INTERMEDIATE = "score_records_intermediate";
+    public static final String SCORE_RECORDS_ADVANCED = "score_records_advanced";
 
     @Inject
     TetrisPresenter mTetrisPresenter;
@@ -97,64 +97,84 @@ public class MainActivity extends BaseActivity {
         });
     }
 
+    private String getRecordKey() {
+        int level = mTetrisPresenter.getLevel();
+        switch (level) {
+            case TetrisPresenter.LEVEL_ADVANCED:
+                return SCORE_RECORDS_ADVANCED;
+            case TetrisPresenter.LEVEL_INTERMEDIATE:
+                return SCORE_RECORDS_INTERMEDIATE;
+            case TetrisPresenter.LEVEL_BASIC:
+            default:
+                return SCORE_RECORDS_BASIC;
+        }
+    }
+
+    private String handleRecords(String records, long score) {
+        String key = getRecordKey();
+        String extraMessage = "";
+
+        if (TextUtils.isEmpty(records)) {
+            mLocalStorage.write(key, score + ",0,0");
+            return extraMessage;
+        }
+
+        String[] parts = records.split(",");
+        if (parts.length != 3) {
+            if (score != 0) {
+                extraMessage = getResources().getString(R.string.game_over_created_record);
+            }
+            mLocalStorage.write(key, score + ",0,0");
+            return extraMessage;
+        }
+
+        int first = Integer.valueOf(parts[0]);
+        int second = Integer.valueOf(parts[1]);
+        int third = Integer.valueOf(parts[2]);
+
+        if (score != 0) {
+            if (score > first) {
+                extraMessage = getResources().getString(R.string.game_over_created_record);
+                mLocalStorage.write(key, score + "," + first + "," + second);
+            } else if (score == first) {
+                extraMessage = getResources().getString(R.string.game_over_leveled_record);
+            } else if (score > second) {
+                extraMessage = getResources().getString(R.string.game_over_second_highest);
+                mLocalStorage.write(key, first + "," + score + "," + second);
+            } else if (score == second) {
+                extraMessage = getResources().getString(R.string.game_over_second_highest);
+            } else if (score > third) {
+                extraMessage = getResources().getString(R.string.game_over_third_highest);
+                mLocalStorage.write(key, first + "," + second + "," + score);
+            } else if (score == third) {
+                extraMessage = getResources().getString(R.string.game_over_third_highest);
+            }
+        }
+
+        return extraMessage;
+    }
+
     public void displayGameOverMessage(final long score) {
+
         mCompositeDisposable.add(
-                mLocalStorage.readObservable(SCORE_RECORDS, null)
+                mLocalStorage.readObservable(getRecordKey(), null)
                         .subscribeOn(Schedulers.io())
                         .observeOn(AndroidSchedulers.mainThread())
                         .subscribeWith(new DisposableObserver<String>() {
                             @Override
                             public void onNext(String s) {
-                                String[] parts = s.split(",");
-                                if (parts.length != 3) {
-                                    String extraMessage = "";
-                                    if (score != 0) {
-                                        extraMessage = getResources().getString(R.string.game_over_created_record);
-                                    }
-                                    mLocalStorage.write(SCORE_RECORDS, score + ",0,0");
-                                    mTetrisView.showGameOverDlg(score, extraMessage);
-                                } else {
-                                    int first = Integer.valueOf(parts[0]);
-                                    int second = Integer.valueOf(parts[1]);
-                                    int third = Integer.valueOf(parts[2]);
-                                    String extraMessage = "";
-
-                                    if (score != 0) {
-                                        if (score > first) {
-                                            extraMessage = getResources().getString(R.string.game_over_created_record);
-                                            mLocalStorage.write(SCORE_RECORDS, score + "," + first + "," + second);
-                                        } else if (score == first) {
-                                            extraMessage = getResources().getString(R.string.game_over_leveled_record);
-                                        } else if (score > second) {
-                                            extraMessage = getResources().getString(R.string.game_over_second_highest);
-                                            mLocalStorage.write(SCORE_RECORDS, first + "," + score + "," + second);
-                                        } else if (score == second) {
-                                            extraMessage = getResources().getString(R.string.game_over_second_highest);
-                                        } else if (score > third) {
-                                            extraMessage = getResources().getString(R.string.game_over_third_highest);
-                                            mLocalStorage.write(SCORE_RECORDS, first + "," + second + "," + score);
-                                        } else if (score == third) {
-                                            extraMessage = getResources().getString(R.string.game_over_third_highest);
-                                        }
-                                    }
-                                    mTetrisView.showGameOverDlg(score, extraMessage);
-                                }
-                            }
-
-                            @Override
-                            public void onError(Throwable e) {
-                                String extraMessage = "";
-                                if (score != 0) {
-                                    extraMessage = getResources().getString(R.string.game_over_created_record);
-                                }
-                                mLocalStorage.write(SCORE_RECORDS, score + ",0,0");
+                                String extraMessage = handleRecords(s, score);
                                 mTetrisView.showGameOverDlg(score, extraMessage);
                             }
 
                             @Override
-                            public void onComplete() {
-
+                            public void onError(Throwable e) {
+                                String extraMessage = handleRecords(null, score);
+                                mTetrisView.showGameOverDlg(score, extraMessage);
                             }
+
+                            @Override
+                            public void onComplete() {}
                         })
         );
     }

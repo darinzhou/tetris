@@ -19,6 +19,8 @@ public interface TetrisContract {
         int getColCount();
         int getColorIdAt(int row, int col);
 
+        int getLevel();
+
         Tetrominoe getCurrentTetrominoe();
         Tetrominoe getNextTetrominoe();
 
