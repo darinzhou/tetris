@@ -151,6 +151,11 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
     }
 
     @Override
+    public void saveTempScoreRecords(final long score) {
+        mParentActivity.saveTempScoreRecords(score);
+    }
+
+    @Override
     public void drawLevel(int level) {
         int resId = R.drawable.basic;
         switch (level) {

@@ -16,6 +16,9 @@ public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
     public static final int LEVEL_INTERMEDIATE = 1;
     public static final int LEVEL_ADVANCED = 2;
 
+    public static final int SCORE_TO_INTERMEDIATE = 10000;
+    public static final int SCORE_TO_ADVANCED = 20000;
+
     public static final int ROW_COUNT = 16;
     public static final int COL_COUNT = 10;
 
@@ -46,10 +49,7 @@ public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
         mTopUnemptyRow = ROW_COUNT;
     }
 
-    private void init(int level) {
-        mScore = 0;
-        mLastClearedRowCount = 0;
-
+    private void setLevel(int level) {
         mLevel = level;
         switch (mLevel) {
             case LEVEL_ADVANCED:
@@ -63,6 +63,30 @@ public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
                 mMillisecondsOnFallingOneRow = 1000;
                 break;
         }
+    }
+
+    private boolean upgrade() {
+        int level = mLevel;
+        if (mLevel == LEVEL_BASIC && mScore > SCORE_TO_INTERMEDIATE) {
+            level = LEVEL_INTERMEDIATE;
+        } else if (mLevel == LEVEL_INTERMEDIATE && mScore > SCORE_TO_ADVANCED) {
+            level = LEVEL_ADVANCED;
+        }
+
+        if (level != mLevel) {
+            setLevel(level);
+            mView.drawLevel(mLevel);
+            return true;
+        }
+
+        return false;
+    }
+
+    private void init(int level) {
+        mScore = 0;
+        mLastClearedRowCount = 0;
+
+        setLevel(level);
 
         mField = new int[ROW_COUNT][COL_COUNT];
         for (int i=0; i<ROW_COUNT; ++i) {
@@ -110,6 +134,9 @@ public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
 
         // accumulate score from action
         mScore += action.getScore();
+
+        // check upgrade
+        upgrade();
 
         // update scene
         mView.refresh();
@@ -261,6 +288,7 @@ public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
     @Override
     public void pause() {
         stopGame();
+        mView.saveTempScoreRecords(mScore);
     }
 
     @Override

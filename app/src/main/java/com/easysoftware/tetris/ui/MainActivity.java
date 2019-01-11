@@ -183,6 +183,29 @@ public class MainActivity extends BaseActivity implements SingleChoiceDlgFragmen
         );
     }
 
+    public void saveTempScoreRecords(final long score) {
+        mCompositeDisposable.add(
+                mLocalStorage.readObservable(getRecordKey(), null)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeWith(new DisposableObserver<String>() {
+                            @Override
+                            public void onNext(String s) {
+                                handleRecords(s, score);
+                            }
+
+                            @Override
+                            public void onError(Throwable e) {
+                                handleRecords(null, score);
+                            }
+
+                            @Override
+                            public void onComplete() {
+                            }
+                        })
+        );
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
