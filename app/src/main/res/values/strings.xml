@@ -15,6 +15,9 @@
         <item>Advanced</item>
     </string-array>
 
+    <string name="upgrade_title">You are Upgraded</string>
+    <string name="upgrade_message">Congratulations! You are upgraded to %1$s level.</string>
+
     <string name="rotateLeft">\u21ba</string>
     <string name="rotateRight">\u21bb</string>
     <string name="down">\u2193</string>

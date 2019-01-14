@@ -4,6 +4,7 @@ import android.app.Dialog;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentManager;
@@ -69,7 +70,7 @@ public class AutoDismissDlgFragment extends DialogFragment {
 
         int durationInMilliSecond = getArguments().getInt(DURATION_KEY);
 
-        new Handler().postDelayed(new Runnable() {
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
             @Override
             public void run() {
                 Dialog dlg = getDialog();

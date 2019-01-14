@@ -9,6 +9,7 @@ public interface TetrisContract {
         void updateScore(int clearedRowCount, long totalScore);
         void refresh();
         void displayGameOverMessage(long score);
+        void displayUpgradeMessage(int newLevel);
         void saveTempScoreRecords(long score);
         void drawLevel(int level);
         void drawNextTetrominoe();

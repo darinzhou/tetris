@@ -74,6 +74,7 @@ public class TetrisPresenter implements Runnable, TetrisContract.Presenter {
         }
 
         if (level != mLevel) {
+            mView.displayUpgradeMessage(level);
             setLevel(level);
             mView.drawLevel(mLevel);
             return true;

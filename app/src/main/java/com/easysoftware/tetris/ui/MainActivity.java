@@ -16,6 +16,7 @@ import com.easysoftware.tetris.R;
 import com.easysoftware.tetris.app.TetrisApp;
 import com.easysoftware.tetris.base.BaseActivity;
 import com.easysoftware.tetris.data.localstorage.LocalStorage;
+import com.easysoftware.tetris.ui.util.AutoDismissDlgFragment;
 import com.easysoftware.tetris.ui.util.SingleChoiceDlgFragment;
 import com.easysoftware.tetris.ui.util.Utils;
 
@@ -26,7 +27,8 @@ import io.reactivex.disposables.CompositeDisposable;
 import io.reactivex.observers.DisposableObserver;
 import io.reactivex.schedulers.Schedulers;
 
-public class MainActivity extends BaseActivity implements SingleChoiceDlgFragment.OnChooseListener {
+public class MainActivity extends BaseActivity
+        implements SingleChoiceDlgFragment.OnChooseListener, AutoDismissDlgFragment.OnDismissListener {
     public static final String SCORE_RECORDS_BASIC = "score_records_basic";
     public static final String SCORE_RECORDS_INTERMEDIATE = "score_records_intermediate";
     public static final String SCORE_RECORDS_ADVANCED = "score_records_advanced";
@@ -263,6 +265,11 @@ public class MainActivity extends BaseActivity implements SingleChoiceDlgFragmen
     }
 
     @Override
+    public void onDismiss() {
+        mTetrisPresenter.resume();
+    }
+
+    @Override
     public void onCancel() {
         finish();
     }
@@ -305,5 +312,16 @@ public class MainActivity extends BaseActivity implements SingleChoiceDlgFragmen
         dialog.show();
     }
 
+    public void showUpgradeMessage(int newLevel) {
+        mTetrisPresenter.pause();
+
+        Resources res = getResources();
+        String[] levels = res.getStringArray(R.array.levels_array);
+        String title = res.getString(R.string.upgrade_title);
+        String message = res.getString(R.string.upgrade_message, levels[newLevel]);
+        AutoDismissDlgFragment dlg = AutoDismissDlgFragment.newInstance(title, message, 2000);
+        dlg.setCancelable(false);
+        dlg.show(getSupportFragmentManager(), "upgrade_dlg");
+    }
 
 }

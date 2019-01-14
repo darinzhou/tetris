@@ -12,6 +12,7 @@ import android.view.SurfaceView;
 
 import com.easysoftware.tetris.R;
 import com.easysoftware.tetris.model.Tetrominoe;
+import com.easysoftware.tetris.ui.util.AutoDismissDlgFragment;
 import com.easysoftware.tetris.ui.util.Utils;
 
 public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, TetrisContract.View {
@@ -148,6 +149,11 @@ public class TetrisView extends SurfaceView implements SurfaceHolder.Callback, T
     @Override
     public void displayGameOverMessage(final long score) {
         mParentActivity.displayGameOverMessage(score);
+    }
+
+    @Override
+    public void displayUpgradeMessage(int newLevel) {
+        mParentActivity.showUpgradeMessage(newLevel);
     }
 
     @Override
